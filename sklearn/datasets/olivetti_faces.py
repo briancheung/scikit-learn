@@ -24,8 +24,15 @@ consists of 64x64 images.
 
 from os.path import join, exists
 from os import makedirs
-from cStringIO import StringIO
-import urllib2
+from io import StringIO
+try:
+    # Python 2
+    import urllib2
+    urlopen = urllib2.urlopen
+except ImportError:
+    # Python 3
+    import urllib.request
+    urlopen = urllib.request.urlopen
 
 import numpy as np
 from scipy.io.matlab import loadmat
@@ -83,8 +90,8 @@ def fetch_olivetti_faces(data_home=None, shuffle=False, random_state=0,
     if not exists(data_home):
         makedirs(data_home)
     if not exists(join(data_home, TARGET_FILENAME)):
-        print 'downloading Olivetti faces from %s to %s' % (DATA_URL,
-                            data_home)
+        print('downloading Olivetti faces from %s to %s'
+              % (DATA_URL, data_home))
         fhandle = urllib2.urlopen(DATA_URL)
         buf = StringIO(fhandle.read())
         mfile = loadmat(buf)

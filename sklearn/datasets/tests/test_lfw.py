@@ -13,6 +13,7 @@ import os
 import shutil
 import tempfile
 import numpy as np
+from sklearn.externals import six
 try:
     try:
         from scipy.misc import imsave
@@ -24,10 +25,10 @@ except ImportError:
 from sklearn.datasets import load_lfw_pairs
 from sklearn.datasets import load_lfw_people
 
-from numpy.testing import assert_array_equal
-from numpy.testing import assert_equal
-from nose import SkipTest
-from nose.tools import raises
+from sklearn.utils.testing import assert_array_equal
+from sklearn.utils.testing import assert_equal
+from sklearn.utils.testing import SkipTest
+from sklearn.utils.testing import raises
 
 
 SCIKIT_LEARN_DATA = tempfile.mkdtemp(prefix="scikit_learn_lfw_test_")
@@ -81,17 +82,17 @@ def setup_module():
     # generate some pairing metadata files using the same format as LFW
     with open(os.path.join(LFW_HOME, 'pairsDevTrain.txt'), 'wb') as f:
         f.write("10\n")
-        more_than_two = [name for name, count in counts.iteritems()
+        more_than_two = [name for name, count in six.iteritems(counts)
                          if count >= 2]
         for i in range(5):
             name = random_state.choice(more_than_two)
-            first, second = random_state.sample(range(counts[name]), 2)
+            first, second = random_state.sample(np.arange(counts[name]), 2)
             f.write('%s\t%d\t%d\n' % (name, first, second))
 
         for i in range(5):
             first_name, second_name = random_state.sample(FAKE_NAMES, 2)
-            first_index = random_state.choice(range(counts[first_name]))
-            second_index = random_state.choice(range(counts[second_name]))
+            first_index = random_state.choice(np.arange(counts[first_name]))
+            second_index = random_state.choice(np.arange(counts[second_name]))
             f.write('%s\t%d\t%s\t%d\n' % (first_name, first_index,
                                           second_name, second_index))
 
@@ -141,8 +142,8 @@ def test_load_fake_lfw_people():
     assert_array_equal(lfw_people.target,
                        [0, 0, 1, 6, 5, 6, 3, 6, 0, 3, 6, 1, 2, 4, 5, 1, 2])
     assert_array_equal(lfw_people.target_names,
-                      ['Abdelatif Smith', 'Abhati Kepler', 'Camara Alvaro',
-                       'Chen Dupont', 'John Lee', 'Lin Bauman', 'Onur Lopez'])
+                       ['Abdelatif Smith', 'Abhati Kepler', 'Camara Alvaro',
+                        'Chen Dupont', 'John Lee', 'Lin Bauman', 'Onur Lopez'])
 
 
 @raises(ValueError)

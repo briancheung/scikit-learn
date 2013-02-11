@@ -9,7 +9,7 @@ from scipy import sparse
 
 from sklearn.feature_selection.rfe import RFE, RFECV
 from sklearn.datasets import load_iris
-from sklearn.metrics import zero_one
+from sklearn.metrics import zero_one_loss
 from sklearn.svm import SVC
 from sklearn.utils import check_random_state
 
@@ -64,7 +64,7 @@ def test_rfecv():
 
     iris = load_iris()
     X = np.c_[iris.data, generator.normal(size=(len(iris.data), 6))]
-    y = iris.target
+    y = list(iris.target)   # regression test: list should be supported
 
     # Test using the score function
     rfecv = RFECV(estimator=SVC(kernel="linear"), step=1, cv=3)
@@ -86,7 +86,7 @@ def test_rfecv():
 
     # Test using a customized loss function
     rfecv = RFECV(estimator=SVC(kernel="linear"), step=1, cv=3,
-            loss_func=zero_one)
+                  loss_func=zero_one_loss)
     rfecv.fit(X, y)
     X_r = rfecv.transform(X)
 

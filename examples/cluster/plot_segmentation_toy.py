@@ -24,7 +24,7 @@ In addition, we use the mask of the objects to restrict the graph to the
 outline of the objects. In this example, we are interested in
 separating the objects one from the other, and not from the background.
 """
-print __doc__
+print(__doc__)
 
 # Authors:  Emmanuelle Gouillart <emmanuelle.gouillart@normalesup.org>
 #           Gael Varoquaux <gael.varoquaux@normalesup.org>
@@ -70,7 +70,7 @@ graph.data = np.exp(-graph.data / graph.data.std())
 
 # Force the solver to be arpack, since amg is numerically
 # unstable on this example
-labels = spectral_clustering(graph, n_clusters=4, mode='arpack')
+labels = spectral_clustering(graph, n_clusters=4, eigen_solver='arpack')
 label_im = -np.ones(mask.shape)
 label_im[mask] = labels
 
@@ -88,7 +88,7 @@ img += 1 + 0.2 * np.random.randn(*img.shape)
 graph = image.img_to_graph(img, mask=mask)
 graph.data = np.exp(-graph.data / graph.data.std())
 
-labels = spectral_clustering(graph, n_clusters=2, mode='arpack')
+labels = spectral_clustering(graph, n_clusters=2, eigen_solver='arpack')
 label_im = -np.ones(mask.shape)
 label_im[mask] = labels
 

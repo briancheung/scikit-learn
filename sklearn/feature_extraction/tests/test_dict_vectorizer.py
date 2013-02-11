@@ -30,7 +30,7 @@ def test_dictvectorizer():
             assert_equal(v.inverse_transform(X), D)
 
             if sparse:
-                # COO matrices can't be compared for equality
+                # CSR matrices can't be compared for equality
                 assert_array_equal(X.A, v.transform(D).A)
             else:
                 assert_array_equal(X, v.transform(D))
@@ -39,9 +39,9 @@ def test_dictvectorizer():
 def test_feature_selection():
     # make two feature dicts with two useful features and a bunch of useless
     # ones, in terms of chi2
-    d1 = dict([("useless%d" % i, 10) for i in xrange(20)],
+    d1 = dict([("useless%d" % i, 10) for i in range(20)],
               useful1=1, useful2=20)
-    d2 = dict([("useless%d" % i, 10) for i in xrange(20)],
+    d2 = dict([("useless%d" % i, 10) for i in range(20)],
               useful1=20, useful2=1)
 
     for indices in (True, False):

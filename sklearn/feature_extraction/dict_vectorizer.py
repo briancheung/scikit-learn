@@ -1,6 +1,7 @@
 # Author: Lars Buitinck <L.J.Buitinck@uva.nl>
 # License: BSD-style.
 
+from array import array
 from collections import Mapping, Sequence
 from operator import itemgetter
 
@@ -8,6 +9,7 @@ import numpy as np
 import scipy.sparse as sp
 
 from ..base import BaseEstimator, TransformerMixin
+from ..externals import six
 from ..utils import atleast2d_or_csr
 
 
@@ -89,8 +91,8 @@ class DictVectorizer(BaseEstimator, TransformerMixin):
         # collect all the possible feature names
         feature_names = set()
         for x in X:
-            for f, v in x.iteritems():
-                if isinstance(v, basestring):
+            for f, v in six.iteritems(x):
+                if isinstance(v, six.string_types):
                     f = "%s%s%s" % (f, self.separator, v)
                 feature_names.add(f)
 
@@ -147,14 +149,15 @@ class DictVectorizer(BaseEstimator, TransformerMixin):
         """
         X = atleast2d_or_csr(X)     # COO matrix is not subscriptable
 
+        sample_ids = np.arange(X.shape[0])
         names = self.feature_names_
-        Xd = [dict_type() for _ in xrange(X.shape[0])]
+        Xd = [dict_type() for _ in sample_ids]
 
         if sp.issparse(X):
             for i, j in zip(*X.nonzero()):
                 Xd[i][names[j]] = X[i, j]
         else:
-            for i in xrange(X.shape[0]):
+            for i in sample_ids:
                 d = Xd[i]
                 for j, v in enumerate(X[i, :]):
                     if v != 0:
@@ -180,31 +183,44 @@ class DictVectorizer(BaseEstimator, TransformerMixin):
         Xa : {array, sparse matrix}
             Feature vectors; always 2-d.
         """
+        # Sanity check: Python's array has no way of explicitly requesting the
+        # signed 32-bit integers that scipy.sparse needs, so we use the next
+        # best thing: typecode "i" (int). However, if that gives larger or
+        # smaller integers than 32-bit ones, np.frombuffer screws up.
+        assert array("i").itemsize == 4, (
+            "sizeof(int) != 4 on your platform; please report this at"
+            " https://github.com/scikit-learn/scikit-learn/issues and"
+            " include the output from platform.platform() in your bug report")
+
         dtype = self.dtype
         vocab = self.vocabulary_
 
         if self.sparse:
             X = [X] if isinstance(X, Mapping) else X
 
-            i_ind = []
-            j_ind = []
+            indices = array("i")
+            indptr = array("i", [0])
+            # XXX we could change values to an array.array as well, but it
+            # would require (heuristic) conversion of dtype to typecode...
             values = []
 
-            for i, x in enumerate(X):
-                for f, v in x.iteritems():
-                    if isinstance(v, basestring):
+            for x in X:
+                for f, v in six.iteritems(x):
+                    if isinstance(v, six.string_types):
                         f = "%s%s%s" % (f, self.separator, v)
                         v = 1
                     try:
-                        j = vocab[f]
-                        i_ind.append(i)
-                        j_ind.append(j)
+                        indices.append(vocab[f])
                         values.append(dtype(v))
                     except KeyError:
                         pass
 
-            shape = (i + 1, len(vocab))
-            return sp.coo_matrix((values, (i_ind, j_ind)),
+                indptr.append(len(indices))
+
+            indices = np.frombuffer(indices, dtype=np.int32)
+            indptr = np.frombuffer(indptr, dtype=np.int32)
+            shape = (len(indptr) - 1, len(vocab))
+            return sp.csr_matrix((values, indices, indptr),
                                  shape=shape, dtype=dtype)
 
         else:
@@ -212,8 +228,8 @@ class DictVectorizer(BaseEstimator, TransformerMixin):
             Xa = np.zeros((len(X), len(vocab)), dtype=dtype)
 
             for i, x in enumerate(X):
-                for f, v in x.iteritems():
-                    if isinstance(v, basestring):
+                for f, v in six.iteritems(x):
+                    if isinstance(v, six.string_types):
                         f = "%s%s%s" % (f, self.separator, v)
                         v = 1
                     try:
@@ -251,7 +267,7 @@ class DictVectorizer(BaseEstimator, TransformerMixin):
             new_vocab[names[i]] = len(new_vocab)
 
         self.vocabulary_ = new_vocab
-        self.feature_names_ = [f for f, i in sorted(new_vocab.iteritems(),
+        self.feature_names_ = [f for f, i in sorted(six.iteritems(new_vocab),
                                                     key=itemgetter(1))]
 
         return self
