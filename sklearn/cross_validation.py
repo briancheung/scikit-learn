@@ -36,7 +36,10 @@ __all__ = ['Bootstrap',
            'check_cv',
            'cross_val_score',
            'permutation_test_score',
-           'train_test_split']
+           'train_test_split',
+           'weighted_cross_val',
+           'weighted_bootstrap',
+           'weighted_permutation']
 
 
 class LeaveOneOut(object):
@@ -1399,3 +1402,54 @@ def train_test_split(*arrays, **options):
     return splitted
 
 train_test_split.__test__ = False  # to avoid a pb with nosetests
+
+def weighted_cross_val(y, n_folds, shuffle=False):
+    """Return weighted cross validation masks
+    """
+    if n_folds > y:
+        raise ValueError('n_folds cannot exceed number of samples y')
+    
+    n_left_out = y/n_folds
+    ds = np.ones((y, n_folds), dtype=np.double)
+    
+    for i in range(n_folds):
+        ds[i*n_left_out:(i+1)*n_left_out, i] = 0
+
+    ds[(i+1)*n_left_out:, i] = 0
+    ds *= (y/ds.sum(axis=0))[np.newaxis, :]
+    
+    if shuffle:
+        np.random.shuffle(ds)
+    
+    return ds
+
+def weighted_bootstrap(y, n_bootstraps):
+    """Return weighted bootstrap masks
+    """
+    ds = np.zeros((y, n_bootstraps), dtype=np.double)
+    
+    b_mask = np.zeros(y, dtype=np.bool)
+    
+    ds[:,0] = 1 #First dataset is the full datatest
+    for i in range(1,n_bootstraps):
+        for j in range(y):
+            ds[np.random.random_integers(y-1),i] += 1
+    
+    return ds
+
+def weighted_permutation(input, target, n_permutations):
+    """Return weighted permutation tests of the input dataset and output targets
+    """
+    if len(input.shape) <= 1:
+        input = input[:,np.newaxis]
+    
+    if len(target.shape) <= 1:
+        target = target[:,np.newaxis]
+    
+    ds = np.tile(input, n_permutations+1)
+    ys = np.tile(target, (n_permutations+1)*input.shape[1])
+    
+    for i in range(1, n_permutations+1):
+        np.random.shuffle(ys[:,i*input.shape[1]:(i+1)*input.shape[1]])
+    
+    return ds,ys
